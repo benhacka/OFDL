@@ -1,14 +1,14 @@
 import json
 import logging
 from datetime import datetime
-from urllib.parse import urljoin, urlparse, urlunsplit, urlencode
+from urllib.parse import urlunsplit, urlencode
 
 import requests
 import math
 import os
 import sqlite3
 from sqlite3 import Error
-import time as time2
+import time
 import hashlib
 
 MESSAGES = 0b1000000
@@ -104,18 +104,18 @@ class OnlyFans:
         self.app_token = self._config["app-token"]
 
     def create_sign(self, session, url, sess, user_agent, text="onlyfans"):
-        time = str(int(round(time2.time() * 1000 - 301000)))
+        sign_time = str(int(round(time.time() * 1000 - 301000)))
         path = url.split(".")[1]
         path = path.split("m", 1)[1]
-        a = [sess, time, path, user_agent, text]
+        a = [sess, sign_time, path, user_agent, text]
         msg = "\n".join(a)
         message = msg.encode("utf-8")
         hash_object = hashlib.sha1(message)
         sha_1 = hash_object.hexdigest()
         session.headers["sign"] = sha_1
-        session.headers["time"] = time
+        session.headers["time"] = sign_time
 
-        return sha_1, time
+        return sha_1, sign_time
 
     def get_sess(self):
         sess = self.sess
@@ -127,7 +127,7 @@ class OnlyFans:
         if len(self._config) == 0:
             return
         self_url = self._url_generator('users', 'me')
-        sub_url = self._url_generator('subscriptions', 'count' 'all')
+        sub_url = self._url_generator('subscriptions', 'count', 'all')
 
         self._session.headers = {
             'User-Agent': self.user_agent,
@@ -179,7 +179,9 @@ class OnlyFans:
                 if sub["username"] not in self._all_subs:
                     self._all_subs.append(sub["username"])
 
-    def return_active_subs(self):
+    def return_active_subs(self, alphabet_sort=True):
+        if alphabet_sort:
+            return sorted(self._active_subs)
         return self._active_subs
 
     def return_expired_subs(self):
